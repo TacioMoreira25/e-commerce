@@ -2,16 +2,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace e_commerce.Models;
 
-public class CartItem
+public class OrderItem
 {
     public Guid Id { get; set; }
     [Required]
-    public Guid UserId { get; set; }
-    [Required]   
+    public Guid OrderId { get; set; }
+    [Required]
     public Guid ProductId { get; set; }
-    [Required]  
+    [Required]
     public int Quantity { get; set; }
+    [Required]
+    public decimal Subtotal { get; set; }
     
-    public User User { get; set; }
+    public Order Order { get; set; }
     public Product Product { get; set; }
 }
