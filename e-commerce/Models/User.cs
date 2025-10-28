@@ -13,6 +13,8 @@ public class User
     [Required]
     public string PasswordHash { get; set; }
     public TypeRole Role { get; set; } = TypeRole.user;
+    public string RefreshToken { get; set; } = string.Empty;
+    public DateTime RefreshTokenExpiry { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     
