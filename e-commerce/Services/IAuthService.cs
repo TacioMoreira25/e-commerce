@@ -5,10 +5,11 @@ namespace e_commerce.Services;
 
 public interface IAuthService
 {
-    Task<User?> RegisterAsync(UserDto request);
-    Task<TokenResponseDto?> LoginAsync(UserDto request);
+    Task<User?> RegisterAsync(RegisterDto request);
+    Task<TokenResponseDto?> LoginAsync(LoginDto request);
     Task<TokenResponseDto?> RefreshTokenAsync(RefreshTokenResponseDto request);
     Task<bool> LogoutAsync(Guid userId);
-    Task<User?> UpdateAsync(UserDto request, Guid userId);
-    Task<User?> DeleteUserAsync(UserDto request);
+    Task<User?> UpdateAsync(UpdateUserDto request, Guid userId);
+    Task<User?> DeleteUserAsync(DeleteUserDto request);
+    Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
 }

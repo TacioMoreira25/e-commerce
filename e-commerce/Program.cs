@@ -41,6 +41,10 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 var app = builder.Build();
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

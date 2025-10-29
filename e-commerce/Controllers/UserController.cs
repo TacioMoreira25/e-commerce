@@ -12,25 +12,36 @@ namespace e_commerce.Controllers;
 [ApiController]
 public class UserController : ControllerBase
 {
-    private readonly IAuthService service;
-    private readonly ECommerceDbContext context;
+    private readonly IAuthService _service;
+    private readonly ECommerceDbContext _context;
     
     public UserController(IAuthService service, ECommerceDbContext context)
     {
-        this.service = service;
-        this.context = context;
+        _service = service;
+        _context = context;
     }
     
     [Authorize]
     [HttpPut("update-user")]
-    public async Task<ActionResult<UserResponseDto>> UpdateUser(UserDto request)
+    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<UserResponseDto>> UpdateUser([FromBody] 
+        UpdateUserDto request)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        
         if (string.IsNullOrEmpty(userIdClaim))
-            return Unauthorized("Usuário não identificado!");
+            return Unauthorized(new { message = "Usuário não identificado!" });
         
         var userId = Guid.Parse(userIdClaim);
-        var user = await service.UpdateAsync(request, userId);
+        var user = await _service.UpdateAsync(request, userId);
+
+        if (user == null)
+            return BadRequest(new { message = "Nome ou email já está em uso!" });
 
         var response = new UserResponseDto
         {
@@ -38,16 +49,21 @@ public class UserController : ControllerBase
             Email = user.Email,
             Role = user.Role.ToString(),
         };
+        
         return Ok(response);
     }
-
+    
     [Authorize(Roles = "admin")]
     [HttpGet("get-users")]
+    [ProducesResponseType(typeof(IEnumerable<UserResponseDto>), 
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetUsers()
     { 
-        var user = await context.Users.ToListAsync();
+        var users = await _context.Users.ToListAsync();
         
-        var response = user.Select(u => new UserResponseDto
+        var response = users.Select(u => new UserResponseDto
         {
             Name = u.Name,
             Email = u.Email,
@@ -58,13 +74,47 @@ public class UserController : ControllerBase
     }
     
     [Authorize(Roles = "admin")]
-    [HttpDelete("delete-users")]
-    public async Task<ActionResult<IEnumerable<UserResponseDto>>> DeleteUsers(UserDto request)
+    [HttpDelete("delete-user")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteUser([FromBody] DeleteUserDto request)
     {
-        var response = await service.DeleteUserAsync(request);
-        if (response is null)
-            return BadRequest("invalid username");
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var response = await _service.DeleteUserAsync(request);
         
-        return Ok("Usuario deletado com sucesso!");
+        if (response == null)
+            return BadRequest(new { message = "Usuário não encontrado" +
+                                              " ou possui dependências!" });
+        
+        return Ok(new { message = "Usuário deletado com sucesso!" });
+    }
+    
+    [Authorize]
+    [HttpPut("change-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordDto request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Unauthorized(new { message = "Usuário não identificado!" });
+        
+        var userId = Guid.Parse(userIdClaim);
+        var result = await _service.ChangePasswordAsync(userId, 
+            request.CurrentPassword, request.NewPassword);
+
+        if (!result)
+            return BadRequest(new { message = "Senha atual incorreta!" });
+
+        return Ok(new { message = "Senha alterada com sucesso!" });
     }
 }
